@@ -1099,6 +1099,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
 
   if (isText && state.text !== undefined) {
     const isMarkdown = (state.language || target.language) === 'markdown'
+    const isHtml = (state.language || target.language) === 'html'
     const hasDiff = Boolean(state.diff && state.diff.trim())
     // Order the toggle reads left→right; default lands on the most useful view.
     const modes: PreviewViewMode[] = []
@@ -1108,6 +1109,13 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
     }
 
     modes.push('source')
+
+    // HTML also gets a rendered view, but as a secondary tab -- never the
+    // default (see autoMode below): a mere file-tree click must not execute
+    // an untrusted document. The user opts in by selecting the Preview tab.
+    if (isHtml) {
+      modes.push('rendered')
+    }
 
     if (hasDiff) {
       modes.push('diff')
@@ -1153,7 +1161,16 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
         />
         <div className="min-h-0 flex-1 overflow-auto">
           {mode === 'rendered' ? (
-            <MarkdownPreview text={state.text} />
+            isHtml ? (
+              <iframe
+                title="HTML preview"
+                sandbox="allow-scripts allow-forms allow-popups"
+                srcDoc={state.text}
+                className="h-full w-full border-0 bg-white"
+              />
+            ) : (
+              <MarkdownPreview text={state.text} />
+            )
           ) : mode === 'diff' ? (
             <FileDiffPanel
               className="mx-0 mb-0 h-full max-h-none"
